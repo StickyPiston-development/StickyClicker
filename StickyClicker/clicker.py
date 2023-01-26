@@ -11,8 +11,6 @@ burst = 1.3
 start_stop_key = KeyCode(char='þ')
 exit_key = KeyCode(char='é')
 
-print(sys.argv)
-input()
 if len(sys.argv) > 4:
     print("Starting a new clicker instance")
     cps = int(sys.argv[1])
