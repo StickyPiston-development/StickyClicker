@@ -48,7 +48,7 @@ cps_slider = customtkinter.CTkSlider(master=app, from_=1, to=120, command=update
 cps_slider.grid(row=2, column=0, columnspan=2, padx=15, pady=5, sticky="ew")
 
 # Burst
-BA_title = customtkinter.CTkLabel(master=app, text="Burst value")
+BA_title = customtkinter.CTkLabel(master=app, text="Burst scaling")
 BA_title.grid(row=3, column=0, columnspan=1, padx=20, pady=5, sticky="nsw")
 BA_amount = customtkinter.CTkLabel(master=app, text="1.3 burst")
 BA_amount.grid(row=3, column=1, columnspan=1, padx=20, pady=5, sticky="nes")
