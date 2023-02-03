@@ -3,13 +3,21 @@ import tkinter
 import customtkinter
 import subprocess
 import os
+import sys
 
-customtkinter.set_appearance_mode("Dark")
-customtkinter.set_default_color_theme("blue")  # blue, dark-blue, green
+settingsFile = open("settings.dat", 'r')
+settings = settingsFile.readline().split("|")
+print(settings)
+theme = settings[0].strip()
+color = settings[1].strip()
+print(theme, color)
+
+customtkinter.set_appearance_mode(theme)
+customtkinter.set_default_color_theme(color)  # blue, dark-blue, green
 
 app = customtkinter.CTk()
-app.geometry("400x380")
-app.minsize(280, 380)
+app.geometry("320x360")
+app.minsize(280, 390)
 # app.maxsize(300, 240)
 
 app.grid_rowconfigure(0, weight=1)
@@ -42,6 +50,30 @@ def update_ct(value):
     app.update_idletasks()
 
 
+def theme(value):
+    settings[0] = value
+    with open("settings.dat", "w") as settingsFile:
+        output = []
+        for i in range(len(settings)):
+            output.append("|" + settings[i])
+        settingsFile.write("".join(output).strip("|"))
+    customtkinter.CTkInputDialog(text="Changed ...", title="Test")
+
+
+def color(value):
+    settings[1] = value
+    with open("settings.dat", "w") as settingsFile:
+        output = []
+        for i in range(len(settings)):
+            output.append("|" + settings[i])
+        settingsFile.write("".join(output).strip("|"))
+    customtkinter.CTkInputDialog(text="Changed ...", title="Test")
+
+
+def restart():
+    app.destroy()
+
+
 # Buttons
 def launch():
     if os.name == "windows":
@@ -60,6 +92,26 @@ def hide():
 
 def show():
     app.deiconify()
+
+
+def setup():
+    theme_box.set(settings[0])
+    color_box.set(settings[1])
+
+
+def GUI_settings():
+    if gs_checkbox.get():
+        app.minsize(280, 490)
+        GT_title.grid(row=11, column=0, columnspan=2, padx=20, pady=5, sticky="nsw")
+        theme_box.grid(row=12, column=0, columnspan=1, padx=(20, 10), pady=(0, 5), sticky="nesw")
+        color_box.grid(row=12, column=1, columnspan=1, padx=(10, 20), pady=(0, 5), sticky="nesw")
+        restart_button.grid(row=13, column=0, columnspan=2, padx=20, pady=(5, 0), sticky="nesw")
+    else:
+        app.minsize(280, 380)
+        GT_title.grid_remove()
+        theme_box.grid_remove()
+        color_box.grid_remove()
+        restart_button.grid_remove()
 
 
 # Clicks per second
@@ -100,24 +152,36 @@ mb_box.grid(row=8, column=0, columnspan=2, padx=20, pady=(0, 5), sticky="ew")
 OO_title = customtkinter.CTkLabel(master=app, text="Other options")
 OO_title.grid(row=9, column=0, columnspan=1, padx=20, pady=5, sticky="nsw")
 
+gs_checkbox = customtkinter.CTkCheckBox(master=app, text="GUI settings", offvalue=False, onvalue=True, command=GUI_settings)
+gs_checkbox.grid(row=10, column=0, columnspan=1, padx=(20, 10), pady=5, sticky="ew")
+
 if os.name == "windows":
-    cc_checkbox = customtkinter.CTkCheckBox(master=app, text="Enable console", offvalue=subprocess.CREATE_NO_WINDOW,
+    cc_checkbox = customtkinter.CTkCheckBox(master=app, text="Console", offvalue=subprocess.CREATE_NO_WINDOW,
                                             onvalue=subprocess.CREATE_NEW_CONSOLE)
 else:
-    cc_checkbox = customtkinter.CTkCheckBox(master=app, text="Enable console", state=tkinter.DISABLED)
-cc_checkbox.grid(row=10, column=0, columnspan=2, padx=20, pady=5, sticky="ew")
+    cc_checkbox = customtkinter.CTkCheckBox(master=app, text="Console", state=tkinter.DISABLED)
+cc_checkbox.grid(row=10, column=1, columnspan=1, padx=(10, 20), pady=5, sticky="ew")
+
+# theme
+GT_title = customtkinter.CTkLabel(master=app, text="GUI theme")
+
+theme_box = customtkinter.CTkComboBox(master=app, values=["dark", "ligth"], command=theme)
+color_box = customtkinter.CTkComboBox(master=app, values=["blue", "dark-blue", "green"], command=color)
+restart_button = customtkinter.CTkButton(master=app, text="Update GUI", command=restart)
 
 # launch button
 launch_button = customtkinter.CTkButton(master=app, text="Start clicker", command=launch)
-launch_button.grid(row=11, column=0, columnspan=1, padx=(20, 10), pady=10, sticky="nesw")
+launch_button.grid(row=14, column=0, columnspan=1, padx=(20, 10), pady=10, sticky="nesw")
 
 # Hide button
 hide_button = customtkinter.CTkButton(master=app, text="Hide GUI", command=hide)
-hide_button.grid(row=11, column=1, columnspan=1, padx=(10, 20), pady=10, sticky="nesw")
+hide_button.grid(row=14, column=1, columnspan=1, padx=(10, 20), pady=10, sticky="nesw")
 
 cps_slider.set(30)
 ba_slider.set(1.3)
 ct_slider.set(0)
+
+setup()
 
 app.attributes('-topmost', True)
 app.mainloop()
