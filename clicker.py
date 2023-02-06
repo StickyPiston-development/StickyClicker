@@ -1,6 +1,7 @@
 import time, threading, sys, random
 from pynput.mouse import Button, Controller
 from pynput.keyboard import Listener, KeyCode
+import pynput.keyboard
 
 button = Button.left
 cps = 10
@@ -16,8 +17,9 @@ if len(sys.argv) > 4:
     ct = int(sys.argv[3])
     if sys.argv[4] == 'right':
         button = Button.right
-    
-delay = 1/cps
+
+delay = 1 / cps
+
 
 class ClickMouse(threading.Thread):
     def __init__(self, delay, button):
@@ -36,6 +38,7 @@ class ClickMouse(threading.Thread):
     def exit(self):
         self.stop_clicking()
         self.program_running = False
+        exit()
 
     def getBurst(self):
         return random.uniform(-0.9, 0.5) * burst * self.delay
@@ -43,38 +46,34 @@ class ClickMouse(threading.Thread):
     def run(self):
         while self.program_running:
             if ct == 0:
-                while self.running:	
+                while self.running:
                     mouse.click(self.button)
-                    time.sleep(self.delay+self.getBurst())
+                    time.sleep(self.delay + self.getBurst())
             else:
                 if self.running:
                     for i in range(ct):
                         for i in range(cps):
                             mouse.click(self.button)
-                            time.sleep(self.delay+self.getBurst())
+                            time.sleep(self.delay + self.getBurst())
                     self.running = False
             time.sleep(0.1)
-
-
 
 
 mouse = Controller()
 click_thread = ClickMouse(delay, button)
 click_thread.start()
 
-def on_press(key):
-    if key == start_stop_key:
-        if click_thread.running:
-            print("Stopping... ")
-            click_thread.stop_clicking()
-        else:
-            print(f"Starting... ({cps} CPS {button})")
-            click_thread.start_clicking()
-    elif key == exit_key:
-        print("Quitting this stickyclicker instance")
-        click_thread.exit()
-        listener.stop()
+
+def toggle():
+    if click_thread.running:
+        print("Stopping... ")
+        click_thread.stop_clicking()
+    else:
+        print(f"Starting... ({cps} CPS {button})")
+        click_thread.start_clicking()
 
 
-with Listener(on_press=on_press) as listener:
-    listener.join()
+with pynput.keyboard.GlobalHotKeys({
+    '<ctrl>+<alt>+t': toggle,
+    '<ctrl>+<alt>+e': click_thread.exit}) as h:
+    h.join()

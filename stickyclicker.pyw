@@ -45,8 +45,12 @@ class StickyClicker(customtkinter.CTk):
         self.restart_button = None
 
         # Launch / hide button
-        self.launch_button = None
+        self.start_button = None
+        self.exit_button = None
         self.save_button = None
+
+        # Subprocess
+        self.subprocess = None
 
         # Settings
         settingsFile = open("settings.dat", 'r')
@@ -64,7 +68,8 @@ class StickyClicker(customtkinter.CTk):
         self.theme = self.settings[6].strip()
         self.color = self.settings[7].strip()
 
-        print(f"Using {self.theme} theme with {self.color}")
+        print(
+            f"\nUsing {self.color} {self.theme} theme\nCPS:\t\t\t{self.cps}\nBurst scaling:\t{self.burst}\nClicking time:\t{self.clicking_time}\nMouse button:\t{self.mbutton}\n\nGUI settings:\t{self.GUI_settings}\nShow console:\t{self.console}\n")
 
         # CustomTkinter setup
         self.geometry(f"{self.sizeX}x{self.sizeY}")
@@ -77,6 +82,7 @@ class StickyClicker(customtkinter.CTk):
         self.grid_columnconfigure((0, 1), weight=1)
 
         self.attributes('-topmost', True)
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         self.title("StickyClicker")
 
@@ -94,7 +100,6 @@ class StickyClicker(customtkinter.CTk):
 
         self.mb_box.set(self.mbutton)
 
-        print(self.GUI_settings)
         if self.GUI_settings == 1:
             self.gs_checkbox.select()
             self.theme_gui_show()
@@ -103,6 +108,9 @@ class StickyClicker(customtkinter.CTk):
 
         self.theme_box.set(self.theme)
         self.color_box.set(self.color)
+
+    def on_closing(self):
+        self.iconify()
 
     def update_cps(self, value):
         self.cps = int(value)
@@ -125,16 +133,35 @@ class StickyClicker(customtkinter.CTk):
     def update_mbutton(self, value):
         self.mbutton = value
 
-    def launch(self):
-        if os.name == "nt":
-            subprocess.Popen(
-                ["python", "clicker.py", str(int(self.cps_slider.get())), str(int(self.ba_slider.get())),
-                 str(int(self.ct_slider.get())), str(self.mb_box.get())], creationflags=self.cc_checkbox.get(),
-                stdout=None, shell=False)
-        else:
-            subprocess.Popen(
-                ["python3", "clicker.py", str(int(self.cps_slider.get())), str(int(self.ba_slider.get())),
-                 str(int(self.ct_slider.get())), str(self.mb_box.get())], stdout=None, shell=False)
+    def stop(self):
+        try:
+            self.subprocess.kill()
+        except Exception:
+            print("No subprocess active")
+
+    def exit(self):
+        try:
+            self.subprocess.kill()
+        except Exception:
+            print("No subprocess active")
+        exit()
+
+    def toggle(self):
+        try:
+            print(self.subprocess.args[1])
+            self.subprocess.kill()
+            self.subprocess = None
+        except Exception as e:
+            print(e)
+            if os.name == "nt":
+                self.subprocess = subprocess.Popen(
+                    ["python", "clicker.py", str(int(self.cps_slider.get())), str(int(self.ba_slider.get())),
+                     str(int(self.ct_slider.get())), str(self.mb_box.get())], creationflags=self.cc_checkbox.get(),
+                    stdout=None, shell=False)
+            else:
+                self.subprocess = subprocess.Popen(
+                    ["python3", "clicker.py", str(int(self.cps_slider.get())), str(int(self.ba_slider.get())),
+                     str(int(self.ct_slider.get())), str(self.mb_box.get())], stdout=None, shell=False)
 
     def changetheme(self, value):
         self.theme = value
@@ -143,8 +170,8 @@ class StickyClicker(customtkinter.CTk):
         self.color = value
 
     def restart(self):
-        # TODO: actually restart
         self.destroy()
+        main()
 
     def save_config(self):
         self.settings[0] = self.cps
@@ -156,7 +183,7 @@ class StickyClicker(customtkinter.CTk):
         self.settings[6] = self.theme
         self.settings[7] = self.color
 
-        print(self.settings)
+        print(f"Saving settings:\n{self.settings}")
 
         with open("settings.dat", "w") as settingsFile:
             settingsFile.write(
@@ -244,12 +271,20 @@ class StickyClicker(customtkinter.CTk):
             self.restart_button.grid_remove()
 
     def buttons_gui(self):
-        self.launch_button = customtkinter.CTkButton(master=self, text="Start clicker", command=self.launch)
-        self.launch_button.grid(row=14, column=0, columnspan=1, padx=(20, 10), pady=10, sticky="nesw")
+        self.start_stop_button = customtkinter.CTkButton(master=self, text="Start StickyClicker", command=self.toggle)
+        self.start_stop_button.grid(row=15, column=0, columnspan=2, padx=20, pady=(10, 5), sticky="nesw")
 
-        self.save_button = customtkinter.CTkButton(master=self, text="Save", command=self.save_config)
-        self.save_button.grid(row=14, column=1, columnspan=1, padx=(10, 20), pady=10, sticky="nesw")
+        self.save_button = customtkinter.CTkButton(master=self, text="Save config", command=self.save_config)
+        self.save_button.grid(row=16, column=0, columnspan=1, padx=(20, 10), pady=10, sticky="nesw")
+
+        self.exit_button = customtkinter.CTkButton(master=self, text="Exit", command=self.exit)
+        self.exit_button.grid(row=16, column=1, columnspan=1, padx=(10, 20), pady=10, sticky="nesw")
 
 
-stickyclicker = StickyClicker()
-stickyclicker.mainloop()
+def main():
+    stickyclicker = StickyClicker()
+    stickyclicker.mainloop()
+
+
+if __name__ == "__main__":
+    main()
