@@ -6,14 +6,16 @@ import os
 
 
 class StickyClicker(customtkinter.CTk):
+    """The stickyclicker main class that builds the GUI and can edit the config."""
     def __init__(self):
+        """Initializes the GUI and registers the required variables."""
         super().__init__()
 
         # Predefined variables
         self.sizeX = 320
-        self.sizeY = 360
+        self.sizeY = 425
         self.minSizeX = 280
-        self.minSizeY = 390
+        self.minSizeY = 425
 
         # CPS slider
         self.CPS_title = None
@@ -45,7 +47,7 @@ class StickyClicker(customtkinter.CTk):
         self.restart_button = None
 
         # Launch / hide button
-        self.start_button = None
+        self.start_stop_button = None
         self.exit_button = None
         self.save_button = None
 
@@ -69,7 +71,7 @@ class StickyClicker(customtkinter.CTk):
         self.color = self.settings[7].strip()
 
         print(
-            f"\nUsing {self.color} {self.theme} theme\nCPS:\t\t\t{self.cps}\nBurst scaling:\t{self.burst}\nClicking time:\t{self.clicking_time}\nMouse button:\t{self.mbutton}\n\nGUI settings:\t{self.GUI_settings}\nShow console:\t{self.console}\n")
+            f"\nUsing {self.color} {self.theme} theme\nCPS:\t\t\t{self.cps}\nBurst scaling:\t{self.burst}\nClicking time:\t{self.clicking_time}\nMouse button:\t{self.mbutton}\n\nGUI settings:\t{self.GUI_settings}\nShow console:\t{self.console}")
 
         # CustomTkinter setup
         self.geometry(f"{self.sizeX}x{self.sizeY}")
@@ -110,13 +112,17 @@ class StickyClicker(customtkinter.CTk):
         self.color_box.set(self.color)
 
     def on_closing(self):
+        """Hook for closing. We don't want to close, but minimize.
+        close with self.exit() instead"""
         self.iconify()
 
     def update_cps(self, value):
+        """Hook for CPS slider"""
         self.cps = int(value)
         self.CPS_amount.configure(text=f"{self.cps} CPS")
 
     def update_ba(self, value):
+        """Hook for burst slider"""
         self.burst = value
         if self.burst == 0:
             self.BA_amount.configure(text="no burst")
@@ -124,35 +130,39 @@ class StickyClicker(customtkinter.CTk):
             self.BA_amount.configure(text=f"{round(self.burst, 2)} burst")
 
     def update_ct(self, value):
-        self.ct = value
-        if self.ct == 0:
+        """Hook for clicking time slider"""
+        self.clicking_time = value
+        if self.clicking_time == 0:
             self.CT_amount.configure(text="Keybinds")
         else:
-            self.CT_amount.configure(text=f"{int(self.ct)} seconds")
+            self.CT_amount.configure(text=f"{int(self.clicking_time)} seconds")
 
     def update_mbutton(self, value):
+        """hook for the mouse button box"""
         self.mbutton = value
 
-    def stop(self):
-        try:
-            self.subprocess.kill()
-        except Exception:
-            print("No subprocess active")
-
     def exit(self):
+        """Exit the script."""
         try:
             self.subprocess.kill()
+            print("Successfully closed the subprocess")
         except Exception:
-            print("No subprocess active")
+            print("No subprocess active > not stopping a subprocess")
         exit()
 
     def toggle(self):
+        """Toggles the sub script and allows only one sript to be active at a time."""
         try:
-            print(self.subprocess.args[1])
+            # Throw exception before logs (DON'T REMOVE)
+            self.subprocess.args[1]
+
+            print("\nTerminating the current instance...")
             self.subprocess.kill()
             self.subprocess = None
-        except Exception as e:
-            print(e)
+            print("The current instance has been terminated!")
+            self.start_stop_button.configure(text="Start StickyClicker")
+        except Exception:
+            print("")
             if os.name == "nt":
                 self.subprocess = subprocess.Popen(
                     ["python", "clicker.py", str(int(self.cps_slider.get())), str(int(self.ba_slider.get())),
@@ -162,18 +172,30 @@ class StickyClicker(customtkinter.CTk):
                 self.subprocess = subprocess.Popen(
                     ["python3", "clicker.py", str(int(self.cps_slider.get())), str(int(self.ba_slider.get())),
                      str(int(self.ct_slider.get())), str(self.mb_box.get())], stdout=None, shell=False)
+            self.start_stop_button.configure(text="Stop StickyClicker")
 
     def changetheme(self, value):
+        """Hook for the theme box"""
         self.theme = value
 
     def changecolor(self, value):
+        """Hook for the color box"""
         self.color = value
 
     def restart(self):
+        """Restart the GUI. Does not restart the whole script."""
+        try:
+            self.subprocess.kill()
+            print("Successfully closed the subprocess")
+        except Exception:
+            print("No active subprocess > not closing it")
         self.destroy()
+        print("Restarting the GUI... (Dont mind the errors)")
         main()
 
     def save_config(self):
+        """Writes the config to a file in value|value|value format.
+        Other options can be added by adding a list entry."""
         self.settings[0] = self.cps
         self.settings[1] = self.burst
         self.settings[2] = self.clicking_time
@@ -190,6 +212,8 @@ class StickyClicker(customtkinter.CTk):
                 f"{self.settings[0]}|{self.settings[1]}|{self.settings[2]}|{self.settings[3]}|{self.settings[4]}|{self.settings[5]}|{self.settings[6]}|{self.settings[7]}")
 
     def build_gui(self):
+        """Builds the stickyclicker GUI.
+        Always call this in the init, else you will see a empty box."""
         self.cps_gui()
         self.burst_gui()
         self.clicktime_gui()
@@ -199,6 +223,10 @@ class StickyClicker(customtkinter.CTk):
         self.buttons_gui()
 
     def cps_gui(self):
+        """Slider for CPS.
+        CPS is short for clicks per second
+        The official limit is 120 to avoid issues on low-end PC's,
+        but it can be as high as you want. (Using config)"""
         self.CPS_title = customtkinter.CTkLabel(master=self, text="CPS")
         self.CPS_title.grid(row=1, column=0, columnspan=1, padx=20, pady=5, sticky="nsw")
         self.CPS_amount = customtkinter.CTkLabel(master=self, text="30 CPS")
@@ -208,6 +236,9 @@ class StickyClicker(customtkinter.CTk):
         self.cps_slider.grid(row=2, column=0, columnspan=2, padx=15, pady=5, sticky="ew")
 
     def burst_gui(self):
+        """Slider for burst.
+        burst is the randomness that makes it look more human like
+        Works the best at 1.0"""
         self.BA_title = customtkinter.CTkLabel(master=self, text="Burst scaling")
         self.BA_title.grid(row=3, column=0, columnspan=1, padx=20, pady=5, sticky="nsw")
         self.BA_amount = customtkinter.CTkLabel(master=self, text="1.3 burst")
@@ -217,6 +248,9 @@ class StickyClicker(customtkinter.CTk):
         self.ba_slider.grid(row=4, column=0, columnspan=2, padx=15, pady=5, sticky="ew")
 
     def clicktime_gui(self):
+        """Slider for clicking time.
+        Clicking time is the time the clicker will be clicking.
+        When it is zero, it is 100% keybind dependant"""
         self.CT_title = customtkinter.CTkLabel(master=self, text="Clicking time")
         self.CT_title.grid(row=5, column=0, columnspan=1, padx=20, pady=5, sticky="nsw")
         self.CT_amount = customtkinter.CTkLabel(master=self, text="Keybinds")
@@ -226,13 +260,20 @@ class StickyClicker(customtkinter.CTk):
         self.ct_slider.grid(row=6, column=0, columnspan=2, padx=15, pady=5, sticky="ew")
 
     def mousebutton_gui(self):
+        """A selection box that has two values:
+        left - for left-clicking (Default)
+        right - for right-clicking
+        middle - for middle-clicking (But who uses that?)"""
         self.MB_title = customtkinter.CTkLabel(master=self, text="Click type")
         self.MB_title.grid(row=7, column=0, columnspan=1, padx=20, pady=5, sticky="nsw")
 
-        self.mb_box = customtkinter.CTkComboBox(master=self, values=["left", "right"], command=self.update_mbutton)
+        self.mb_box = customtkinter.CTkComboBox(master=self, values=["left", "right", "middle"], command=self.update_mbutton)
         self.mb_box.grid(row=8, column=0, columnspan=2, padx=20, pady=(0, 5), sticky="ew")
 
     def other_options_gui(self):
+        """A multiple choice menu that lets you choose additional options.
+        GUI settings - shows the additional GUI and theme settings.
+        Console - Show the console when enabled. Only nt (windows) support"""
         self.OO_title = customtkinter.CTkLabel(master=self, text="Other options")
         self.OO_title.grid(row=9, column=0, columnspan=1, padx=20, pady=5, sticky="nsw")
 
@@ -249,6 +290,9 @@ class StickyClicker(customtkinter.CTk):
         self.cc_checkbox.grid(row=10, column=1, columnspan=1, padx=(10, 20), pady=5, sticky="ew")
 
     def theme_gui(self):
+        """Initialize the theme settings.
+        The theme settings are hidden by default.
+        Show / hide using theme_gui_show()"""
         self.GT_title = customtkinter.CTkLabel(master=self, text="GUI theme")
 
         self.theme_box = customtkinter.CTkComboBox(master=self, values=["dark", "light"], command=self.changetheme)
@@ -257,20 +301,22 @@ class StickyClicker(customtkinter.CTk):
         self.restart_button = customtkinter.CTkButton(master=self, text="Update GUI", command=self.restart)
 
     def theme_gui_show(self):
+        """Checks the checkbox to decide whether to show or not to show the theme settings"""
         if self.gs_checkbox.get() == 1:
-            self.minsize(280, 490)
+            self.minsize(self.minSizeX, self.minSizeY + 110)
             self.GT_title.grid(row=11, column=0, columnspan=2, padx=20, pady=5, sticky="nsw")
             self.theme_box.grid(row=12, column=0, columnspan=1, padx=(20, 10), pady=(0, 5), sticky="nesw")
             self.color_box.grid(row=12, column=1, columnspan=1, padx=(10, 20), pady=(0, 5), sticky="nesw")
             self.restart_button.grid(row=13, column=0, columnspan=2, padx=20, pady=(5, 0), sticky="nesw")
         else:
-            self.minsize(280, 380)
+            self.minsize(self.minSizeX, self.minSizeY)
             self.GT_title.grid_remove()
             self.theme_box.grid_remove()
             self.color_box.grid_remove()
             self.restart_button.grid_remove()
 
     def buttons_gui(self):
+        """Renders the start, the save config and the exit button."""
         self.start_stop_button = customtkinter.CTkButton(master=self, text="Start StickyClicker", command=self.toggle)
         self.start_stop_button.grid(row=15, column=0, columnspan=2, padx=20, pady=(10, 5), sticky="nesw")
 

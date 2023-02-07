@@ -17,6 +17,8 @@ if len(sys.argv) > 4:
     ct = int(sys.argv[3])
     if sys.argv[4] == 'right':
         button = Button.right
+    elif sys.argv[5] == 'middle':
+        button = Button.middle
 
 delay = 1 / cps
 
