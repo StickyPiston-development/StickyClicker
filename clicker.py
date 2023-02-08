@@ -7,8 +7,6 @@ button = Button.left
 cps = 10
 ct = 0
 burst = 1
-start_stop_key = KeyCode(char='þ')
-exit_key = KeyCode(char='é')
 
 if len(sys.argv) > 4:
     print("Starting a new clicker instance")
