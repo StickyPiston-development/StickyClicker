@@ -1,12 +1,17 @@
+import sys
 import tkinter
 
 import customtkinter
-import subprocess
 import os
+
+from pynput.mouse import Button
+
+import clicker
 
 
 class StickyClicker(customtkinter.CTk):
     """The stickyclicker main class that builds the GUI and can edit the config."""
+
     def __init__(self):
         """Initializes the GUI and registers the required variables."""
         super().__init__()
@@ -39,7 +44,6 @@ class StickyClicker(customtkinter.CTk):
         # Other options
         self.OO_title = None
         self.gs_checkbox = None
-        self.cc_checkbox = None
 
         self.GT_title = None
         self.theme_box = None
@@ -47,12 +51,8 @@ class StickyClicker(customtkinter.CTk):
         self.restart_button = None
 
         # Launch / hide button
-        self.start_stop_button = None
         self.exit_button = None
         self.save_button = None
-
-        # Subprocess
-        self.subprocess = None
 
         # Settings
         settingsFile = open("settings.dat", 'r')
@@ -65,13 +65,15 @@ class StickyClicker(customtkinter.CTk):
         self.mbutton = self.settings[3].strip()
 
         self.GUI_settings = int(self.settings[4].strip())
-        self.console = int(self.settings[5].strip())
 
         self.theme = self.settings[6].strip()
         self.color = self.settings[7].strip()
 
         print(
-            f"\nUsing {self.color} {self.theme} theme\nCPS:\t\t\t{self.cps}\nBurst scaling:\t{self.burst}\nClicking time:\t{self.clicking_time}\nMouse button:\t{self.mbutton}\n\nGUI settings:\t{self.GUI_settings}\nShow console:\t{self.console}")
+            f"\nUsing {self.color} {self.theme} theme\nCPS:\t\t\t{self.cps}\nBurst scaling:\t{self.burst}\nClicking time:\t{self.clicking_time}\nMouse button:\t{self.mbutton}\n\nGUI settings:\t{self.GUI_settings}\n")
+
+        self.click_thread = clicker.ClickMouse(cps=self.cps, button=self.mbutton, clicktime=self.clicking_time,
+                                               burst=self.burst)
 
         # CustomTkinter setup
         self.geometry(f"{self.sizeX}x{self.sizeY}")
@@ -105,8 +107,6 @@ class StickyClicker(customtkinter.CTk):
         if self.GUI_settings == 1:
             self.gs_checkbox.select()
             self.theme_gui_show()
-        if self.console == 16:
-            self.cc_checkbox.select()
 
         self.theme_box.set(self.theme)
         self.color_box.set(self.color)
@@ -119,11 +119,13 @@ class StickyClicker(customtkinter.CTk):
     def update_cps(self, value):
         """Hook for CPS slider"""
         self.cps = int(value)
+        self.click_thread.cps = self.cps
         self.CPS_amount.configure(text=f"{self.cps} CPS")
 
     def update_ba(self, value):
         """Hook for burst slider"""
         self.burst = value
+        self.click_thread.burst = self.burst
         if self.burst == 0:
             self.BA_amount.configure(text="no burst")
         else:
@@ -132,6 +134,7 @@ class StickyClicker(customtkinter.CTk):
     def update_ct(self, value):
         """Hook for clicking time slider"""
         self.clicking_time = value
+        self.click_thread.burst = self.burst
         if self.clicking_time == 0:
             self.CT_amount.configure(text="Keybinds")
         else:
@@ -140,39 +143,24 @@ class StickyClicker(customtkinter.CTk):
     def update_mbutton(self, value):
         """hook for the mouse button box"""
         self.mbutton = value
+        if self.mbutton == "right":
+            self.click_thread.button = Button.right
+        elif self.mbutton == "middle":
+            self.click_thread.button = Button.middle
+        else:
+            self.click_thread.button = Button.left
 
     def exit(self):
         """Exit the script."""
+        self.destroy()
         try:
-            self.subprocess.kill()
+            self.click_thread.exit()
+
             print("Successfully closed the subprocess")
         except Exception:
             print("No subprocess active > not stopping a subprocess")
-        exit()
-
-    def toggle(self):
-        """Toggles the sub script and allows only one sript to be active at a time."""
-        try:
-            # Throw exception before logs (DON'T REMOVE)
-            self.subprocess.args[1]
-
-            print("\nTerminating the current instance...")
-            self.subprocess.kill()
-            self.subprocess = None
-            print("The current instance has been terminated!")
-            self.start_stop_button.configure(text="Start StickyClicker")
-        except Exception:
-            print("")
-            if os.name == "nt":
-                self.subprocess = subprocess.Popen(
-                    ["python", "clicker.py", str(int(self.cps_slider.get())), str(int(self.ba_slider.get())),
-                     str(int(self.ct_slider.get())), str(self.mb_box.get())], creationflags=self.cc_checkbox.get(),
-                    stdout=None, shell=False)
-            else:
-                self.subprocess = subprocess.Popen(
-                    ["python3", "clicker.py", str(int(self.cps_slider.get())), str(int(self.ba_slider.get())),
-                     str(int(self.ct_slider.get())), str(self.mb_box.get())], stdout=None, shell=False)
-            self.start_stop_button.configure(text="Stop StickyClicker")
+        os.kill(os.getpid(), 1)
+        sys.exit()
 
     def changetheme(self, value):
         """Hook for the theme box"""
@@ -184,8 +172,9 @@ class StickyClicker(customtkinter.CTk):
 
     def restart(self):
         """Restart the GUI. Does not restart the whole script."""
+        self.save_config()
         try:
-            self.subprocess.kill()
+            self.click_thread.exit()
             print("Successfully closed the subprocess")
         except Exception:
             print("No active subprocess > not closing it")
@@ -201,7 +190,6 @@ class StickyClicker(customtkinter.CTk):
         self.settings[2] = self.clicking_time
         self.settings[3] = self.mbutton
         self.settings[4] = self.gs_checkbox.get()
-        self.settings[5] = self.cc_checkbox.get()
         self.settings[6] = self.theme
         self.settings[7] = self.color
 
@@ -209,7 +197,7 @@ class StickyClicker(customtkinter.CTk):
 
         with open("settings.dat", "w") as settingsFile:
             settingsFile.write(
-                f"{self.settings[0]}|{self.settings[1]}|{self.settings[2]}|{self.settings[3]}|{self.settings[4]}|{self.settings[5]}|{self.settings[6]}|{self.settings[7]}")
+                f"{self.settings[0]}|{self.settings[1]}|{self.settings[2]}|{self.settings[3]}|{self.settings[4]}|NULL|{self.settings[6]}|{self.settings[7]}")
 
     def build_gui(self):
         """Builds the stickyclicker GUI.
@@ -267,7 +255,8 @@ class StickyClicker(customtkinter.CTk):
         self.MB_title = customtkinter.CTkLabel(master=self, text="Click type")
         self.MB_title.grid(row=7, column=0, columnspan=1, padx=20, pady=5, sticky="nsw")
 
-        self.mb_box = customtkinter.CTkComboBox(master=self, values=["left", "right", "middle"], command=self.update_mbutton)
+        self.mb_box = customtkinter.CTkComboBox(master=self, values=["left", "right", "middle"],
+                                                command=self.update_mbutton)
         self.mb_box.grid(row=8, column=0, columnspan=2, padx=20, pady=(0, 5), sticky="ew")
 
     def other_options_gui(self):
@@ -277,17 +266,9 @@ class StickyClicker(customtkinter.CTk):
         self.OO_title = customtkinter.CTkLabel(master=self, text="Other options")
         self.OO_title.grid(row=9, column=0, columnspan=1, padx=20, pady=5, sticky="nsw")
 
-        self.gs_checkbox = customtkinter.CTkCheckBox(master=self, text="GUI settings", offvalue=0, onvalue=1,
+        self.gs_checkbox = customtkinter.CTkCheckBox(master=self, text="Show GUI settings", offvalue=0, onvalue=1,
                                                      command=self.theme_gui_show)
         self.gs_checkbox.grid(row=10, column=0, columnspan=1, padx=(20, 10), pady=5, sticky="ew")
-
-        if os.name == "nt":
-            self.cc_checkbox = customtkinter.CTkCheckBox(master=self, text="Console",
-                                                         offvalue=subprocess.CREATE_NO_WINDOW,
-                                                         onvalue=subprocess.CREATE_NEW_CONSOLE)
-        else:
-            self.cc_checkbox = customtkinter.CTkCheckBox(master=self, text="Console", state=tkinter.DISABLED)
-        self.cc_checkbox.grid(row=10, column=1, columnspan=1, padx=(10, 20), pady=5, sticky="ew")
 
     def theme_gui(self):
         """Initialize the theme settings.
@@ -317,14 +298,11 @@ class StickyClicker(customtkinter.CTk):
 
     def buttons_gui(self):
         """Renders the start, the save config and the exit button."""
-        self.start_stop_button = customtkinter.CTkButton(master=self, text="Start StickyClicker", command=self.toggle)
-        self.start_stop_button.grid(row=15, column=0, columnspan=2, padx=20, pady=(10, 5), sticky="nesw")
-
         self.save_button = customtkinter.CTkButton(master=self, text="Save config", command=self.save_config)
-        self.save_button.grid(row=16, column=0, columnspan=1, padx=(20, 10), pady=10, sticky="nesw")
+        self.save_button.grid(row=15, column=0, columnspan=2, padx=20, pady=(10, 0), sticky="nesw")
 
         self.exit_button = customtkinter.CTkButton(master=self, text="Exit", command=self.exit)
-        self.exit_button.grid(row=16, column=1, columnspan=1, padx=(10, 20), pady=10, sticky="nesw")
+        self.exit_button.grid(row=16, column=0, columnspan=2, padx=20, pady=(10, 20), sticky="nesw")
 
 
 def main():
