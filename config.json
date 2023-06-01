@@ -1,0 +1,13 @@
+{
+    "theme": {
+        "mode": "dark",
+        "color": "blue"
+    },
+    "clicker": {
+        "cps": 30,
+        "burst": 1.0,
+        "clicktime": 0,
+        "button": "right"
+    },
+    "GUI_settings": 0
+}

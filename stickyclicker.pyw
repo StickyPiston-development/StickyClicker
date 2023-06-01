@@ -2,6 +2,7 @@ import sys
 import tkinter
 
 import customtkinter
+import json
 import os
 
 from pynput.mouse import Button
@@ -15,6 +16,9 @@ class StickyClicker(customtkinter.CTk):
     def __init__(self):
         """Initializes the GUI and registers the required variables."""
         super().__init__()
+
+        with open("config.json") as configFile:
+            self.config = json.load(configFile)
 
         # Predefined variables
         self.sizeX = 320
@@ -55,19 +59,16 @@ class StickyClicker(customtkinter.CTk):
         self.save_button = None
 
         # Settings
-        settingsFile = open("settings.dat", 'r')
-        self.settings = settingsFile.readline().split("|")
+        self.cps = int(self.config["clicker"]["cps"])
+        self.burst = float(self.config["clicker"]["burst"])
+        self.clicking_time = int(self.config["clicker"]["clicktime"])
 
-        self.cps = int(self.settings[0].strip())
-        self.burst = float(self.settings[1].strip())
-        self.clicking_time = int(self.settings[2].strip())
+        self.mbutton = self.config["clicker"]["button"]
 
-        self.mbutton = self.settings[3].strip()
+        self.GUI_settings = int(self.config["GUI_settings"])
 
-        self.GUI_settings = int(self.settings[4].strip())
-
-        self.theme = self.settings[6].strip()
-        self.color = self.settings[7].strip()
+        self.theme = self.config["theme"]["mode"]
+        self.color = self.config["theme"]["color"]
 
         print(
             f"\nUsing {self.color} {self.theme} theme\nCPS:\t\t\t{self.cps}\nBurst scaling:\t{self.burst}\nClicking time:\t{self.clicking_time}\nMouse button:\t{self.mbutton}\n\nGUI settings:\t{self.GUI_settings}\n")
@@ -185,19 +186,18 @@ class StickyClicker(customtkinter.CTk):
     def save_config(self):
         """Writes the config to a file in value|value|value format.
         Other options can be added by adding a list entry."""
-        self.settings[0] = self.cps
-        self.settings[1] = self.burst
-        self.settings[2] = self.clicking_time
-        self.settings[3] = self.mbutton
-        self.settings[4] = self.gs_checkbox.get()
-        self.settings[6] = self.theme
-        self.settings[7] = self.color
+        self.config["clicker"]["cps"] = self.cps
+        self.config["clicker"]["burst"] = self.burst
+        self.config["clicker"]["clicktime"] = self.clicking_time
+        self.config["clicker"]["button"] = self.mbutton
 
-        print(f"Saving settings:\n{self.settings}")
+        self.config["theme"]["mode"] = self.theme
+        self.config["theme"]["color"] = self.color
 
-        with open("settings.dat", "w") as settingsFile:
-            settingsFile.write(
-                f"{self.settings[0]}|{self.settings[1]}|{self.settings[2]}|{self.settings[3]}|{self.settings[4]}|NULL|{self.settings[6]}|{self.settings[7]}")
+        self.config["GUI_settings"] = self.gs_checkbox.get()
+
+        with open("config.json", 'w', encoding='utf-8') as configFile:
+            json.dump(self.config, configFile, ensure_ascii=False, indent=4)
 
     def build_gui(self):
         """Builds the stickyclicker GUI.
