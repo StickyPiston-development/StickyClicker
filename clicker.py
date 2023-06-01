@@ -12,7 +12,12 @@ class ClickMouse(threading.Thread):
         self.cps = cps
         self.delay = 1 / cps
 
-        self.button = button
+        if button == "right":
+            self.button = Button.right
+        elif button == "middle":
+            self.button = Button.middle
+        else:
+            self.button = Button.left
 
         self.running = False
         self.program_running = True
