@@ -4,6 +4,7 @@ import sys
 
 import customtkinter
 import keyboard
+
 from pynput.mouse import Button
 
 import clicker
@@ -88,10 +89,14 @@ class StickyClicker(customtkinter.CTk):
         self.attributes('-topmost', True)
         self.protocol("WM_DELETE_WINDOW", self.hide)
 
-        keyboard.add_hotkey('ctrl+alt+t', self.click_thread.toggle, suppress=True)
-        keyboard.add_hotkey('ctrl+alt+escape', self.exit, suppress=True)
-        keyboard.add_hotkey('ctrl+alt+s', self.show, suppress=True)
-        keyboard.add_hotkey('ctrl+alt+h', self.hide, suppress=True)
+        try:
+            keyboard.add_hotkey('ctrl+alt+t', self.click_thread.toggle, suppress=True)
+            keyboard.add_hotkey('ctrl+alt+escape', self.exit, suppress=True)
+            keyboard.add_hotkey('ctrl+alt+s', self.show, suppress=True)
+            keyboard.add_hotkey('ctrl+alt+h', self.hide, suppress=True)
+        except ImportError:
+            print("StickyClicker requires root to use keybinds.")
+            exit(1)
 
         self.title("StickyClicker")
 
