@@ -1,10 +1,9 @@
-import sys
-import tkinter
-
-import customtkinter
 import json
 import os
+import sys
 
+import customtkinter
+import keyboard
 from pynput.mouse import Button
 
 import clicker
@@ -87,7 +86,12 @@ class StickyClicker(customtkinter.CTk):
         self.grid_columnconfigure((0, 1), weight=1)
 
         self.attributes('-topmost', True)
-        self.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.protocol("WM_DELETE_WINDOW", self.hide)
+
+        keyboard.add_hotkey('ctrl+alt+t', self.click_thread.toggle, suppress=True)
+        keyboard.add_hotkey('ctrl+alt+escape', self.exit, suppress=True)
+        keyboard.add_hotkey('ctrl+alt+s', self.show, suppress=True)
+        keyboard.add_hotkey('ctrl+alt+h', self.hide, suppress=True)
 
         self.title("StickyClicker")
 
@@ -112,10 +116,27 @@ class StickyClicker(customtkinter.CTk):
         self.theme_box.set(self.theme)
         self.color_box.set(self.color)
 
-    def on_closing(self):
+    def exit(self):
+        """Exit the script."""
+        try:
+            self.click_thread.exit()
+
+            print("Successfully closed the thread")
+        except Exception:
+            print("No thread active > not stopping a thread")
+
+        self.after(200, lambda: {os.kill(os.getpid(), 0), sys.exit(0)})
+
+    def hide(self):
         """Hook for closing. We don't want to close, but minimize.
         close with self.exit() instead"""
-        self.iconify()
+        print("Disabling GUI")
+        self.withdraw()
+
+    def show(self):
+        """"Show the GUI again"""
+        print("Enabling GUI")
+        self.deiconify()
 
     def update_cps(self, value):
         """Hook for CPS slider"""
@@ -134,8 +155,8 @@ class StickyClicker(customtkinter.CTk):
 
     def update_ct(self, value):
         """Hook for clicking time slider"""
-        self.clicking_time = value
-        self.click_thread.burst = self.burst
+        self.clicking_time = int(value)
+        self.click_thread.ct = self.clicking_time
         if self.clicking_time == 0:
             self.CT_amount.configure(text="Keybinds")
         else:
@@ -151,18 +172,6 @@ class StickyClicker(customtkinter.CTk):
         else:
             self.click_thread.button = Button.left
 
-    def exit(self):
-        """Exit the script."""
-        self.destroy()
-        try:
-            self.click_thread.exit()
-
-            print("Successfully closed the subprocess")
-        except Exception:
-            print("No subprocess active > not stopping a subprocess")
-        os.kill(os.getpid(), 1)
-        sys.exit()
-
     def changetheme(self, value):
         """Hook for the theme box"""
         self.theme = value
@@ -176,9 +185,9 @@ class StickyClicker(customtkinter.CTk):
         self.save_config()
         try:
             self.click_thread.exit()
-            print("Successfully closed the subprocess")
+            print("Successfully closed the thread")
         except Exception:
-            print("No active subprocess > not closing it")
+            print("No active thread > not closing it")
         self.destroy()
         print("Restarting the GUI... (Dont mind the errors)")
         main()

@@ -28,9 +28,6 @@ class ClickMouse(threading.Thread):
         self.mouse = Controller()
         self.start()
 
-        self.listener = threading.Thread(target=self.listen_hotkeys)
-        self.listener.start()
-
     def toggle(self):
         if self.running:
             print("Stopping... ")
@@ -60,12 +57,6 @@ class ClickMouse(threading.Thread):
                             time.sleep(self.delay + self.getBurst())
                     self.running = False
             time.sleep(0.1)
-
-    def listen_hotkeys(self):
-        with pynput.keyboard.GlobalHotKeys({
-                                            '<ctrl>+<alt>+t': self.toggle,
-                                            '<ctrl>+<alt>+e': self.exit}) as h:
-            h.join()
 
 
 if __name__ == "__main__":
